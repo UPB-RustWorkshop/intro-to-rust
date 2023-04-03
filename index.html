@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>What makes Rust so special?</title>
+    <title>Rust, a modern alternative to C and C++</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="style/style.css"></link>
     <style>
@@ -13,26 +13,524 @@
 
 class: center, middle
 
-# What makes Rust so special?
+# Rust, a modern alternative to C and C++
 
-.title[.center[![IoT Services and Architectures](images/rust.png)]]
+.small[.center[![IoT Services and Architectures](images/rust_logo.png)]]
 
 .left[
 Based on: [Rust ISP 2019](https://github.com/newpavlov/rust-isp-2019) slides  
-Alexandru Radovici, ilustrations by [Mieuneli](http://miau.laura.ro)
+Alexandru Radovici, illustrations by [Mieuneli](http://miau.laura.ro)
+]
+
+---
+
+class: split-70
+# The C language
+
+.column[
+- Invented in 1972
+- Purpose: writing UNIX
+- Standard: ANSI C
+- Issues
+  - No library
+  - No strings, just arrays of `char`
+  - No data collections library 
+  - ASCII characters
+  - No bounds verification
+  - Pointer arithmetic
+  - No memory management
+- Pros
+  - Fast
+  - The only language (except `C++` and `Pascal`) usable for writing an OS
+  - Works on small embedded devices
+]
+
+.column[
+.small[.center[![Denis Ritchie](images/Dennis_Ritchie_2011.jpg)]]
+]
+
+---
+
+class: split-70
+# The C++ language
+
+.column[
+- Invented in 1985
+- Purpose: improvement to C
+- Standard: ISO/IEC 14882
+- Issues
+  - ASCII characters
+  - No bounds verification
+  - Pointer arithmetic
+  - No memory management
+  - Diamond Problem (multiple inheritance)
+  - Too many compiler flavours
+  - Too many standard versions
+  - No template verification
+- Pros
+  - Fast
+  - Allows the writing of an OS (Linux did not accept it in the kernel)
+  - Works on small embedded devices
+]
+
+.column[
+.small[.center[![Bjarne Stroustrup](images/Bjarne-Stroustrup.jpg)]]
+]
+
+---
+
+class: split-70
+# The Rust language
+
+.column[
+- Invented in 2015
+- Purpose: safe systems language
+  - replacement for C and C++
+- Standard: The Rust Language
+- Pros
+  - No dangling pointers
+  - Memory management
+  - Data collections library
+  - Works on small embedded devices
+  - No implicit typecast
+  - Bounds verification
+  - Fast
+  - Allows the writing of an OS (Linux did accept it in the kernel)
+- Issues
+  - Panics
+  - Macros
+]
+
+.column[
+.small[.center[![Graydon Hoare](images/Graydon-Hoare.jpeg)]]
+.small[.center[![Rust Logo](images/rust_logo.png)]]
 ]
 
 ---
 
 # Items to talk
 
-An introduction to [Rust](https://www.rust-lang.org/) things.
+An introduction to [Rust](https://www.rust-lang.org/).
 
+- Quick overview
 - Ownership and Borrows
 - Enums with payload
 - No NULL references
-- Traits
 - Lifetime annotations
+
+---
+
+# Simple Rust 
+
+```rust
+fn main() {
+    println!("Hello, world!");
+}
+```
+
+- `println!` is a macro, not a function, it replaces code
+- function `main` does not return a value (almost true)
+
+.card[.large[.center[![Hello Rust](images/sep_hello.png)]]]
+
+---
+## `print!` & `println!`
+- Print stuff out. Yay.
+- Use `{}` for general string interpolation, and `{:?}` for debug printing.
+    - Some types can only be printed with `{:?}`, like arrays and `Vec`s.
+
+```rust
+print!("{}, {}, {}", "foo", 3, true);
+// => foo, 3, true
+println!("{:?}, {:?}", "foo", [1, 2, 3]);
+// => "foo", [1, 2, 3]
+```
+
+
+## `format!` 
+- Uses `println!`-style string interpolation to create formatted `String`s.
+
+```rust
+let fmted = format!("{}, {:x}, {:?}", 12, 155, [1,2,3]);
+// fmted == "12, 9b, [1,2,3]"
+```
+
+---
+
+## Variable Bindings ###
+- Variables are bound with `let`:
+```rust
+let x = 17;
+```
+
+- Bindings are implicitly-typed: the compiler infers based on context.
+- The compiler can't always determine the type of a variable, so sometimes you
+  have to add type annotations.
+```rust
+let x: i16 = 17;
+```
+
+- Variables are inherently immutable:
+```rust
+let x = 5;
+x += 1; // error: re-assignment of immutable variable x
+let mut y = 5;
+y += 1; // OK!
+```
+
+---
+## Variable Bindings ###
+- Bindings may be shadowed:
+```rust
+let x = 17;
+let y = 53;
+let x = "Shadowed!";
+// x is not mutable, but we're able to re-bind it
+```
+
+- The shadowed binding for `x` above lasts until it goes out of scope.
+- Above, we've effectively lost the first binding, since both `x`s are in the same scope.
+
+- Patterns may also be used to declare variables:
+```rust
+let (a, b) = ("foo", 12);
+let [c, d] = [1, 2];
+```
+
+---
+## Primitive Types 
+
+- `unit`: () (similar with `void` from C)
+- `bool`: `true` and `false`
+- `char`: `'c'` or `'😺'` (`char`s are Unicode code-points, i.e. 4 bytes long!)
+
+- Numerics: specify the signedness and size.
+    - `i8`, `i16`, `i32`, `i64`, `i128`, `isize`
+    - `u8`, `u16`, `u32`, `u64`, `u128`, `usize`
+    - `f32`, `f64`, `f128`
+    - `isize` & `usize` are the size of pointers (and therefore have
+        machine-dependent size)
+    - Literals are spelled like `10i8`, `10u16`, `10.0f32`, `10usize`.
+    - Type inference for non-specific literals default to `i32` or `f64`:
+      - e.g. `10` defaults to `i32`, `10.0` defaults to `f64`.
+
+---
+
+## Arrays
+- Arrays are generically of type `[T; N]`.
+    - N is a compile-time _constant_. Arrays cannot be resized.
+    - Array access is bounds-checked at runtime.
+- Arrays are indexed with `[]` like most other languages:
+    - `arr[3]` gives you the 4th element of `arr`
+
+```rust
+let arr1 = [1, 2, 3]; // (array of 3 elements)
+let arr2 = [2; 32];   // (array of 32 `2`s)
+```
+
+---
+## Slices
+- Generically of type `&[T]`
+- A "view" into an array (or heap allocated data) by reference
+- Not created directly, but are borrowed from other variables
+- Mutable `&mut [T]` or immutable `&[T]`
+
+```rust
+let arr = [0, 1, 2, 3, 4, 5];
+let val = arr[0];               // val = 0
+let total_slice = &arr;         // Slice all of `arr`
+let total_slice = &arr[..];     // Same, but more explicit
+let partial_slice = &arr[2..5]; // [2, 3, 4]
+```
+
+---
+## Strings
+- Two types of Rust strings: `String` and `&str`.
+- `String` is a heap-allocated, growable vector of characters.
+- `&str` is a type&sup1; that's used to slice into `String`s.
+- String literals like `"foo"` are of type `&str`.
+- Strings are guaranteed to be encoded using UTF-8
+
+```rust
+let s: &str = "galaxy";
+let s2: String = "галактика".to_string();
+let s3: String = String::from("銀漢");
+let s4: &str = &s3;
+```
+
+```rust
+let s1 = "foobar";
+// You can slice strings:
+let s2 = &s1[1..3];
+// But you can't index with []
+// you can use `s1.chars().nth(1).unwrap()` instead
+let s3 = s1[1] // does not work!
+```
+
+&sup1;`str` is an unsized type, which doesn't have a compile-time known size,
+and therefore cannot exist by itself.
+
+---
+## Casting 
+
+- Cast between types with `as`:
+
+```rust
+let x: i32 = 100;
+let y: u32 = x as u32;
+```
+
+- Naturally, you can only cast between types that are safe to cast between.
+    - No casting `[i16; 4]` to `char`! (This is called a "non-scalar" cast)
+    - There are unsafe mechanisms to overcome this, if you know what you're doing.
+
+
+---
+## If Statements
+
+```rust
+let x = 10;
+
+if x > 0 {
+    println! ("positive");
+} else if x == 0 {
+    println! ("zero");
+} else {
+    println! ("negative");
+}
+```
+
+- No parentheses necessary.
+- Entire if statement evaluates to one expression, so every arm must end with
+  an expression of the same type.
+    - In this example is it unit `()`:
+
+---
+### Workpoint .top_image[![Work In Progress](images/work_in_progress.png)]
+
+Assign to `max` the value of the maximum between a and b  without changing its mutability.
+
+```rust
+let a = 10;
+let b = 100;
+let max = ...
+
+println! ("The maximum {}", max);
+```
+
+Remember, **almost everything is an expression** that returns a value.
+
+---
+
+## `match` 
+- `switch` on steroids.
+
+```rust
+let x = 3;
+
+match x {
+    1 => println!("one fish"),  // <- comma required
+    2 => {
+        println!("two fish");
+        println!("two fish");
+    },  // <- comma optional when using braces
+    // we can match several patterns in one arm
+    3 | 4 => println!("three or four, dunno"),
+    _ => println!("no fish for you"), // "otherwise" case
+}
+```
+
+- `match` takes an expression (`x`) and branches on a list of `value => expression` statements.
+- The entire match evaluates to one expression.
+    - Like `if`, all arms must evaluate to the same type.
+- `_` is commonly used as a catch-all (cf. Haskell, OCaml)
+
+---
+
+## `match` pattern
+```rust
+let x = 3;
+let y = -3;
+let q = 10;
+
+let s = match (x, y) {
+    (1, 1) => "one".to_string(),
+    (2, j) => format!("two, {}", j),
+    (_, 3) => "three".to_string(),
+    (i, j) if i > 5 && j < 0 => "On guard!".to_string(),
+    // NB: note that we do not test x == 10 here!
+    (q, k) => format!("???: {} {}", q, k),
+};
+println!("{}", s);
+```
+
+- The matched expression can be any expression (l-value), including tuples and function calls.
+    - Matches can bind variables. `_` is a throw-away variable name.
+- You _must_ write an exhaustive match in order to compile.
+- Use `if`-guards to constrain a match to certain conditions.
+- Patterns can get very complex.
+---
+
+## `while` 
+- Loops come in three flavors: `while`, `loop`, and `for`.
+    - `break` and `continue` exist just like in most languages
+
+- `while` works just like you'd expect:
+
+```rust
+let mut x = 0;
+while x < 100 {
+    x += 1;
+    println!("x: {}", x);
+}
+```
+
+While loops are not expressions.
+
+---
+
+### Workpoint .top_image[![Work In Progress](images/work_in_progress.png)]
+
+Make a `while` behave like a `do while`.
+
+```rust
+let mut x = 0;
+while x < 100 {
+    x += 1;
+    println!("x: {}", x);
+}
+```
+
+Remember, **almost everything is an expression** that returns a value and a block { } is evaluated to the value of its last expression.
+
+---
+## `loop` 
+- `loop` is equivalent to `while true`, a common pattern.
+    - Plus, the compiler can make optimizations knowing that it's infinite.
+
+```rust
+let mut x = 0;
+loop {
+    x += 1;
+    println!("x: {}", x);
+}
+```
+
+Loops are expressions, they *return* using `break`.
+
+---
+## `for` iteration
+- `for` is the most different from most C-like languages
+     - `for` loops use an _iterator expression_:
+     - `n..m` creates an iterator from n to m (exclusive).
+     - Some data structures can be used as iterators, like arrays and `Vec`s.
+
+```rust
+// Loops from 0 to 9.
+for x in 0..10 {
+    println!("{}", x);
+}
+
+let xs = [0, 1, 2, 3, 4];
+// Loop through elements in a slice of `xs`.
+for x in &xs {
+    println!("{}", x);
+}
+```
+
+For loops are not expressions.
+
+---
+### Workpoint .top_image[![Work In Progress](images/work_in_progress.png)]
+
+Assign to `max` the value of the maximum number in the array. Do not use any function.
+
+```rust
+let v = [1,2,4,5,23,54,6,7,34,6,6,3];
+let max = v[0];
+// ...
+
+println! ("The maximum {}", max);
+```
+
+Remember array slices are iterators that return references to array elements.
+
+---
+class: split-50
+## Functions 
+
+```rust
+fn foo(x: T, y: U, z: V) -> T {
+    // ...
+}
+```
+.column[
+- `foo` is a function that takes three parameters:
+    - `x` of type `T`
+    - `y` of type `U`
+    - `z` of type `V`
+- `foo` returns a `T`.
+]
+
+.column[
+.card[.small[.center[![Function](images/sep_function.png)]]]
+]
+
+<br>
+
+- Must explicitly define argument and return types.
+    - The compiler is actually smart enough to figure this out for you, but
+      Rust's designers decided it was better practice to force explicit function
+      typing.
+
+---
+## Functions Return
+
+- The final expression in a function is its return value.
+    - Use `return` for _early_ returns from a function.
+
+```rust
+fn square(n: i32) -> i32 {
+    n * n
+}
+
+fn squareish(n: i32) -> i32 {
+    if n < 5 { return n; }
+    n * n
+}
+
+fn square_bad(n: i32) -> i32 {
+    n * n;
+}
+```
+
+- The last one won't even compile!
+  - Why? 
+
+---
+
+### Workpoint .top_image[![Work In Progress](images/work_in_progress.png)]
+
+1. Write the `maximum` function that returns the maximum of a and b
+
+  ```rust
+  let a = 10;
+  let b = 100;
+  let max = maximum (a, b);
+  
+  println! ("The maximum {}", max);
+  ```
+
+2.  Write the `maximum` function that returns the maximum element of `v`.
+
+  ```rust
+  let v = [1,2,4,5,23,54,6,7,34,6,6,3];
+  let max = maximum (&v);
+  
+  println! ("The maximum {}", max);
+  ```
+
+  Hint: You have to send a refernce of `v` to the function.
 
 ---
 
@@ -295,26 +793,6 @@ Learn these rules, and they will serve you well.
 ---
 ### Borrowing Prevents...
 
-- Iterator invalidation due to mutating a collection you're iterating over.
-- This pattern can be written in C, C++, Java, Python, Javascript...
-    - But may result in, e.g, `ConcurrentModificationException` (at runtime!)
-
-```rust
-let mut vs = [1,2,3,4];
-for v in &vs {
-    vs[1] = 3;
-    println! ("{}", v);
-    // ERROR: cannot borrow `vs` as mutable because
-    // it is also borrowed as immutable
-}
-```
-
-- `pop` needs to borrow `vs` as mutable in order to modify the data.
-- But `vs` is being borrowed as immutable by the loop!
-
----
-### Borrowing Prevents...
-
 - Use-after-free
 - Valid in C, C++...
 
@@ -342,79 +820,8 @@ note: reference must be valid for the block suffix following statement
 variable (in this case x) is pretty useful.
 
 ---
-### Borrowing Prevents...
 
-- Data races in multithreaded environments.
-- It checks at compile time if it's safe to share or send a given piece of data.
-- Compiler ensures that programm uses necessary synchronization using various primitives: mutexes, atomics, channels, etc.
-- NB: data races != race condition.
-- Check out TRPL section of ["Fearless Concurrency"](https://doc.rust-lang.org/book/ch16-00-concurrency.html)
-
----
-## Methods parameters
-
-- The first argument to a method, named `self`, determines what kind of ownership the method
-  requires.
-- `&self`: the method *borrows* the value.
-    - Use this unless you need a different ownership model.
-- `&mut self`: the method *mutably borrows* the value.
-    - The function needs to modify the struct it's called on.
-- `self`: the method takes ownership.
-    - The function consumes the value and may return something else.
-
----
-
-# `match` 
-- `switch` on steroids.
-
-```rust
-let x = 3;
-
-match x {
-    1 => println!("one fish"),  // <- comma required
-    2 => {
-        println!("two fish");
-        println!("two fish");
-    },  // <- comma optional when using braces
-    // we can match several patterns in one arm
-    3 | 4 => println!("three or four, dunno"),
-    _ => println!("no fish for you"), // "otherwise" case
-}
-```
-
-- `match` takes an expression (`x`) and branches on a list of `value => expression` statements.
-- The entire match evaluates to one expression.
-    - Like `if`, all arms must evaluate to the same type.
-- `_` is commonly used as a catch-all (cf. Haskell, OCaml)
-
----
-
-## `match` pattern
-```rust
-let x = 3;
-let y = -3;
-let q = 10;
-
-let s = match (x, y) {
-    (1, 1) => "one".to_string(),
-    (2, j) => format!("two, {}", j),
-    (_, 3) => "three".to_string(),
-    (i, j) if i > 5 && j < 0 => "On guard!".to_string(),
-    // NB: note that we do not test x == 10 here!
-    (q, k) => format!("???: {} {}", q, k),
-};
-println!("{}", s);
-```
-
-- The matched expression can be any expression (l-value), including tuples and function calls.
-    - Matches can bind variables. `_` is a throw-away variable name.
-- You _must_ write an exhaustive match in order to compile.
-- Use `if`-guards to constrain a match to certain conditions.
-- Patterns can get very complex.
-
----
-
-# Enum
+## Enum
 
 - An enum, or "sum type", is a way to express some data that may be one of several things.
 - Similar to the union type in C
@@ -432,11 +839,8 @@ enum Resultish {
 }
 ```
 
-.card[.small[.center[![Enum](../images/sep_enum.png)]]]
-
 ---
-class: split-70
-# Enum `match`-ing
+### Enum `match`-ing
 
 - Enum variants are namespaced by their enum type: `Resultish::Ok`.
     - You can import all variants with `use Resultish::*`.
@@ -463,7 +867,7 @@ match make_request() {
 
 class: split-70
 
-# `Option` .top_image[![Seatbelt](../images/seatbelt.png)] 
+## `Option` .top_image[![Seatbelt](images/seatbelt.png)] 
 
 - Rust has no NULL type
 - a variable of a type has to store a value of that actual type
@@ -508,125 +912,10 @@ fn main () {
     Some(d) => println! ("{}:{} = {}", x, y, d),
     None => println! ("division by 0")
   };
+  // or
+  println! ("{}:{} = {}", x, y, integer_division (x, y).unwrap()),
 }
 ```
-
----
-
-# Traits
-
-
-- Similar to interfaces in Java
-- Methods that types have to implement
-
-.column[
-```rust
-struct Professor {
-  firstname: String,
-  lastname: String,
-  age: usize,
-  // add subjects
-}
-
-trait Person {
-  fn get_name (&self) -> String;
-  fn get_job (&self) -> String;
-}
-
-impl Person for Professor {
-  fn get_name (&self) -> String {
-    // ...
-  }
-
-  fn get_job (&self) -> String {
-    // ...
-  }
-}
-```
-]
-
-.column[
-.card[.small_vertical[.center[![Struct](images/sep_struct.png)]]]
-]
-
----
-
-## Generics with Trait Bounds
-
-- Multiple trait bounds are specified like `T: Clone + Ord`.
-- There's no way (yet) to specify [negative trait bounds](https://internals.rust-lang.org/t/pre-rfc-mutually-exclusive-traits/2126).
-  - e.g. you can't stipulate that a `T` must not be `Clone`.
-
-```rust
-fn digital_write<P: Configure + Output>(p: P, value: usize) {
-   p.make_output ();
-   if value == 1 {
-       p.set ();
-   } else {
-       p.clear ();
-   }
-}
-```
-
----
-## Generic Types With Trait Bounds
-
-- You can also define structs with generic types and trait bounds.
-- Be sure to declare all of your generic types in the struct header _and_ the
-  impl block header.
-- Only the impl block header needs to specify trait bounds.
-    - This is useful if you want to have multiple impls for a struct each with
-      different trait bounds
-
-```rust
-struct MyDriver<P: Pin> {
-    pin1: &'static P,
-    pin2: &'static P,
-    // ...
-}
-```
-
-And without trait bounds
-
-```rust
-struct MyDriver<P> {
-    pin1: &'static P,
-    pin2: &'static P,
-    // ...
-}
-```
-
----
-## Generic Types With Trait Bounds
-
-```rust
-impl<P: Pin> Driver for MyDriver<P> {
-   // ...
-}
-```
-
----
-## Inheritance (kinda)
-
-- Some traits may require other traits to be implemented first.
-    - e.g., `Eq` requires that `PartialEq` be implemented, and `Copy` requires `Clone`.
-- Implementing the `Child` trait below requires you to also implement `Parent`.
-
-```rust
-trait Parent {
-    fn foo(&self) {
-        // ...
-    }
-}
-
-trait Child: Parent {
-    fn bar(&self) {
-        self.foo();
-        // ...
-    }
-}
-```
-
 ---
 # Lifetimes Annotations
 
@@ -636,7 +925,7 @@ trait Child: Parent {
 .title[.center[![Din Lac in Put](images/mieuneli_din_lac_in_put.png)]]
 
 ---
-### Question .top_image[![Questions](../images/question.svg)]
+### Question .top_image[![Questions](images/question.svg)]
 
 Q1: How do you use free?
 
@@ -659,7 +948,7 @@ int main ()
 ```
 
 ---
-### Question .top_image[![Questions](../images/question.svg)]
+### Question .top_image[![Questions](images/question.svg)]
 
 Q2: How do you use free?
 
@@ -690,7 +979,7 @@ int main ()
 ```
 
 ---
-### Question .top_image[![Questions](../images/question.svg)]
+### Question .top_image[![Questions](images/question.svg)]
 
 Q3: How do you use free?
 
@@ -731,9 +1020,9 @@ fn without_first_word<'a> (s: &'a str) -> &'a str;
 fn main() {
     let s = String::from("ana has apples"); 
     let wfw = without_first_word (&s);      
-    // drop (s)
+    // drop (s);
     println! ("{}", wfw);                  
-    // drop (s)
+    // drop (wfw);
 }                                         
 ```
 
@@ -754,7 +1043,7 @@ fn without_first_word<'a> (s: &'a str) -> &'a str {
 fn main() {
     let s = String::from("ana has apples");
     let wfw = without_first_word (&s);
-    // drop (s)
+    // drop (s);
     println! ("{}", wfw);
 }
 ```
@@ -775,7 +1064,7 @@ fn without_first_word<'a> (s: &'a str) -> &'a str {
 fn main() {
     let s = String::from("ana has apples"); // <--- s lifetime ('ls) starts here
     let wfw = without_first_word (&s);      // <--- wfw lifetime ('lwfw) starts here
-    // drop (s)                             // <--- s lifetime ('ls) ends here, wfw lifetime ('wfw) ends here (due to 'ls)
+    // drop (s);                            // <--- s lifetime ('ls) ends here, wfw lifetime ('wfw) ends here (due to 'ls)
                                             //      t lifetime ('ts) starts here
     println! ("{}", wfw);                   // <--- wfw lifetime ('lwfw) actually ends here
 }                                           // <--- t lifetime ('ts) ends here
@@ -790,14 +1079,14 @@ fn without_first_word<'a> (s: &'a str) -> &'a str;
 fn main() {
     let s = String::from("ana has apples"); // <--- s lifetime ('ls) starts here
     let wfw = without_first_word (&s);      // <--- wfw lifetime ('lwfw) starts here
-    // drop (s)                             // <--- s lifetime ('ls) ends here, wfw lifetime ('wfw) ends here (due to 'ls)
+    // drop (s);                            // <--- s lifetime ('ls) ends here, wfw lifetime ('wfw) ends here (due to 'ls)
                                             //      t lifetime ('ts) starts here
     println! ("{}", wfw);                   // <--- wfw lifetime ('lwfw) actually ends here
 }                                           // <--- t lifetime ('ts) ends here
 ```
 
 ---
-### Question .top_image[![Questions](../images/question.svg)]
+### Question .top_image[![Questions](images/question.svg)]
 
 Can we use free for `s1` and `s2` before `printf`?
 
@@ -854,14 +1143,14 @@ fn main() {
     let s1 = String::from("ip"); 
     let s2 = String::from("workshop"); 
     let small = smaller (&s1, &s2);
-    // drop (s1)
-    // drop (s2)
+    // drop (s1);
+    // drop (s2);
     println! ("{}", small);                  
 }                                          
 ```
 
 ---
-### Question .top_image[![Questions](../images/question.svg)]
+### Question .top_image[![Questions](images/question.svg)]
 
 Why can't we free s2?
 
@@ -875,8 +1164,8 @@ fn main() {
     let mut s1 = String::from("ip"); 
     let s2 = String::from(" workshop"); 
     let title = append (&mut s1, &s2);
-    // let t1 = s1; // equivalent of free (s1)
-    let t2 = s2; // equivalent of free (s2)
+    // drop(s1);
+    drop(s2);
     println! ("{}", title);                  
 }                                          
 ```
@@ -895,21 +1184,19 @@ fn main() {
     let mut s1 = String::from("ip"); 
     let s2 = String::from(" workshop"); 
     let title = append (&mut s1, &s2);
-    // drop (s1)
-    drop (s2)
+    // drop (s1);
+    drop (s2);
     println! ("{}", title);                  
 }                                          
 ```
 
 ---
 
-# Coding, Snacks & Drinks
+# Links
 
-Solve the homework before the workshops.
-
-https://classroom.github.com/a/VYBsE08w
-
-.center[.small[![Din Lac in Put](images/rust-for-beginners.png)]]
+- [Website](https://www.rust-lang.org/)
+- [The Rust Programming Language](https://doc.rust-lang.org/stable/book/)
+- [Tour of Rust](https://tourofrust.com/)
 
     </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">
